@@ -5,37 +5,66 @@ import { useEffect, useState } from "react";
 import { signUp } from "../service/authSignUp";
 import { firebaseErrorMessages } from "../config/firebaseError";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { useForm } from "react-hook-form";
+import z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
+
+// 2026.04.03 zod 활용
+const signupSchema = z.object({
+    email: z.email("올바른 이메일 형식이 아닙니다."),
+    password: z.string()
+        .min(6, "비밀번호는 최소 6자 이상이어야 합니다.")
+        .regex(/[[!@#$%^&*()]]/, "특수문자를 포함해야 합니다.")
+        .regex(/[0-9]/, "숫자를 포함해야 합니다.")
+        .regex(/[a-zA-Z]/, "영문자를 포함해야 합니다."),
+    passwordConfirm: z.string()
+}).refine( (d) => d.pw === d.passwordConfirm, {
+    message: "비밀번호 불일치",
+    path: ['passwordConfirm']
+})
 
 export default function SignUpModal() {
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [error, setError] = useState("");
+  // const [email, setEmail] = useState("");
+  // const [password, setPassword] = useState("");
+  // const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [fireBaseError, setFireBaseError] = useState("");
 
-  const handleSignUp = async (e) => {
-    e.preventDefault(); // form 이라서 새로고침 방지
+  const {
+    register,
+    handleSubmit,
+    formState: {errors, isValid},
+    reset
+  } = useForm({
+    resolver: zodResolver(signupSchema),
+    mode: "onChange",
+    defaultValues: {email: "", password: "", passwordConfirm: ""}
+  })
 
-    if(password !== passwordConfirm)
-    {
-      setError("비밀번호가 일치하지 않습니다.")
-      return ;
-    }
+  const handleSignUpOnSubmit = async (e) => {
+    // e.preventDefault(); // form 이라서 새로고침 방지
+    setFireBaseError("")
+    // if(password !== passwordConfirm)
+    // {
+    //   setError("비밀번호가 일치하지 않습니다.")
+    //   return ;
+    // }
     
     try 
     {
       const user = await signUp(email, password)
       console.log("회원가입 성공: ", user)
       setOpen(false) // 회원가입 창 닫기
-      setEmail("") // 이메일 초기화
-      setPassword("") // 패스워드 초기화
-      setPasswordConfirm("")
+      // setEmail("") // 이메일 초기화
+      // setPassword("") // 패스워드 초기화
+      // setPasswordConfirm("")
+      reset() // zod 의 reset()
     } 
     catch (error) 
     {
       const errMsg = firebaseErrorMessages[error.code] || `회원가입 실패: ${error}`
-      setError(errMsg)
+      setFireBaseError(errMsg)
       console.error("(원) 회원가입 실패: ", error)
     }
   };
@@ -44,9 +73,10 @@ export default function SignUpModal() {
   useEffect( () => {
     if(!open)
     {
-      setEmail("");
-      setPassword("");
-      setPasswordConfirm("");
+      // setEmail("");
+      // setPassword("");
+      // setPasswordConfirm("");
+      reset()
     }
   }, [open])
 
@@ -71,49 +101,55 @@ export default function SignUpModal() {
             </Dialog.CloseTrigger>
           </Dialog.Header>
           <Dialog.Body>
-            <Fieldset.Root invalid={!!error}> 
+            <Fieldset.Root invalid={!isValid || !!fireBaseError}> 
               {/* 이메일, 비밀번호, 비밀번호 확인 구현 */}
-              <Field.Root mb={4}>
+              <Field.Root mb={4} invalid={!!errors.email}>
                 <Field.Label>이메일</Field.Label>
                 <Input 
                   type="text"
                   placeholder="이메일을 입력하세요"
-                  value={email}
-                  onChange={(e)=>setEmail(e.target.value)}
+                  // value={email}
+                  // onChange={(e)=>setEmail(e.target.value)}
+                  {...register("email")}
                 />
+                <Field.ErrorText>{errors.email?.message}</Field.ErrorText>
               </Field.Root>
 
-              <Field.Root mb={4}>
+              <Field.Root mb={4} invalid={!!errors.password}>
                 <Field.Label>비밀번호</Field.Label>
                 <PasswordInput 
-                  value={password}
-                  onChange={(e)=>{
-                    return setPassword(e.target.value)
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
+                  // value={password}
+                  // onChange={(e)=>{
+                  //   return setPassword(e.target.value)
+                  // }}
+                  // onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
+                  {...register("password")}
                 />
+                <Field.ErrorText>{errors.password?.message}</Field.ErrorText>
               </Field.Root>
 
-              <Field.Root mb={4}>
+              <Field.Root mb={4} isValid={!!errors.passwordConfirm}>
                 <Field.Label>비밀번호 확인</Field.Label>
                 <PasswordInput 
-                  value={passwordConfirm}
-                  onChange={(e)=>{
-                    return setPasswordConfirm(e.target.value)
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSignUp(e)}
+                  // value={passwordConfirm}
+                  // onChange={(e)=>{
+                  //   return setPasswordConfirm(e.target.value)
+                  // }}
+                  // onKeyDown={(e) => e.key === 'Enter' && handleSignUp(e)}
+                  {...register("passwordConfirm")}
                 />
+                <Field.ErrorText>{errors.passwordConfirm?.message}</Field.ErrorText>
               </Field.Root>
-              <Fieldset.ErrorText>{error}</Fieldset.ErrorText>
+              <Fieldset.ErrorText>{fireBaseError}</Fieldset.ErrorText>
               <Button
                 type="submit"
-                onClick={handleSignUp}
+                onClick={handleSubmit(handleSignUpOnSubmit)}
                 width="100%"
                 mt={4}
                 // disabled={!!error}
-                disabled={
-                  email === "" || password === "" || passwordConfirm === ""
-                }
+                // disabled={
+                //   email === "" || password === "" || passwordConfirm === ""
+                // }
               >
                 회원가입
               </Button>
