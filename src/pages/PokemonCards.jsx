@@ -34,7 +34,7 @@ export default function PokemonCards() {
   const offset = (page - 1) * limit;
   const currentIds = pokemonIds.slice(offset, offset + limit);
 
-  const maxVisible = 10;
+  const maxVisible = 5;
   let start = Math.max(1, page - Math.floor(maxVisible / 2));
   let end = start + maxVisible - 1;
 

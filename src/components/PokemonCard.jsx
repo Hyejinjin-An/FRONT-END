@@ -31,18 +31,18 @@ export default function PokemonCard({id})
             return <TypeBadge key={i} typeName={t}/>
           })}
         </HStack>
-        <Text 
+        {/* <Text 
           textAlign="center" 
           fontWeight="bold" 
           paddingTop={4} 
           paddingBottom={2}
         >기술 목록
-        </Text>
-        <Box maxHeight="70px" overflowY="scroll">
+        </Text> */}
+        {/* <Box maxHeight="70px" overflowY="scroll">
           {pokemon?.moves.map((move, idx)=>{
             return <Text key={idx}>{move}</Text>
           })}
-        </Box>
+        </Box> */}
       </Card.Body>
     </Card.Root>
   )
