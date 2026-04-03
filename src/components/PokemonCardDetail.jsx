@@ -46,6 +46,7 @@ export default function PokemonDetail({ id, onPrev, onNext })
             <Tabs.Content value="info">
                 <Text mt={4}>키: {pokemon.height}</Text>
                 <Text>몸무게: {pokemon.weight}</Text>
+                <Text>특징: {pokemon.description}</Text>
             </Tabs.Content>
 
             {/* 기술 */}

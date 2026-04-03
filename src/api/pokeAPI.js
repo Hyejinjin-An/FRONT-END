@@ -49,7 +49,8 @@ export async function getPokemonDetails(id)
       // ⭐ 추가 정보
       height: data.height,
       weight: data.weight,
-
+      description: data.description,
+      
       // ⭐ 능력치
       stats: data.stats.map(s => ({
         name: s.stat.name,
@@ -70,3 +71,6 @@ export async function getPokemonDetails(id)
     console.error(err);
   }
 }
+
+const res = await getPokemonDetails(1); // top-level await 지원 환경이라 가능
+console.log(res);
