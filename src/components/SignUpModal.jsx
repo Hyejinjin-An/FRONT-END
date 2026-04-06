@@ -1,13 +1,18 @@
 // src/components/SignUpModal.jsx
-import { Button, Dialog, Field, Fieldset, HStack, Icon, Input, Portal, Separator, Text } from "@chakra-ui/react";
+import { Button, Dialog, Field, Fieldset, FileUpload, HStack, Icon, Input, Portal, Separator, Text } from "@chakra-ui/react";
 import { PasswordInput } from "./ui/password-input";
-import { useEffect, useState } from "react";
-import { signUp } from "../service/authSignUp";
+import { useContext, useEffect, useState } from "react";
+import { signUp } from "../service/authSignUp.js";
 import { firebaseErrorMessages } from "../config/firebaseError";
 import GoogleLoginButton from "./GoogleLoginButton";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import authService from "../service/authService.js";
+import { AuthContext } from "../contexts/AuthProvider.jsx";
+import { LuUpload } from "react-icons/lu";
+import { uploadAvater } from "../service/storage.js";
+import { updateProfile } from "firebase/auth";
 
 
 // 2026.04.03 zod 활용
@@ -30,11 +35,15 @@ export default function SignUpModal() {
   // const [password, setPassword] = useState("");
   // const [passwordConfirm, setPasswordConfirm] = useState("");
   const [fireBaseError, setFireBaseError] = useState("");
+  
+  // 2026.04.06 추가
+  const { signUpWithEmail } = authService();
+  const [avatarFile, setAvatarFile] = useState(null);
 
   const {
     register,
     handleSubmit,
-    formState: {errors, isValid},
+    formState: {errors, isValid, isSubmitting},
     reset
   } = useForm({
     resolver: zodResolver(signupSchema),
@@ -42,7 +51,7 @@ export default function SignUpModal() {
     defaultValues: {email: "", password: "", passwordConfirm: ""}
   })
 
-  const handleSignUpOnSubmit = async (e) => {
+  const handleSignUpOnSubmit = async (data) => {
     // e.preventDefault(); // form 이라서 새로고침 방지
     setFireBaseError("")
     // if(password !== passwordConfirm)
@@ -53,7 +62,8 @@ export default function SignUpModal() {
     
     try 
     {
-      const user = await signUp(email, password)
+      // const user = await signUp(email, password)
+      const user = await signUpWithEmail(data.email, data.password, avatarFile)
       console.log("회원가입 성공: ", user)
       setOpen(false) // 회원가입 창 닫기
       // setEmail("") // 이메일 초기화
@@ -141,6 +151,27 @@ export default function SignUpModal() {
                 <Field.ErrorText>{errors.passwordConfirm?.message}</Field.ErrorText>
               </Field.Root>
               <Fieldset.ErrorText>{fireBaseError}</Fieldset.ErrorText>
+              
+              {/* 파일 업로드 부분 start */}
+              <Field.Root mb={4}>
+                <Field.Label>프로필 이미지(선택)</Field.Label>
+                <FileUpload.Root
+                  maxFiles={1}
+                  accept="image/*"
+                  onFileAccept={ (details) => setAvatarFile(details.files[0]) }
+                >
+                  <FileUpload.HiddenInput />
+                  <FileUpload.Dropzone p={3} minH="80px">
+                    <Icon color="fg.muted" as={LuUpload} />
+                    <FileUpload.DropzoneContent>
+                      드래그 또는 클릭하여 이미지 선택
+                    </FileUpload.DropzoneContent>
+                  </FileUpload.Dropzone>
+                  <FileUpload.List showSize clearable />
+                </FileUpload.Root>
+              </Field.Root>
+              {/* 파일 업로드 부분 end */}
+              
               <Button
                 type="submit"
                 onClick={handleSubmit(handleSignUpOnSubmit)}
@@ -150,6 +181,7 @@ export default function SignUpModal() {
                 // disabled={
                 //   email === "" || password === "" || passwordConfirm === ""
                 // }
+                loading={isSubmitting} // 업로드 전 submit 방지
               >
                 회원가입
               </Button>

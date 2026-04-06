@@ -3,6 +3,9 @@ import { toaster } from "../components/ui/toaster";
 import { firebaseErrorMessages } from "../config/firebaseError"
 import { login } from "./auth";
 import { googleSignIn } from "./auth_google_signIn";
+import { signUp } from "./authSignUp";
+import { uploadAvater } from "./storage";
+import { updateProfile } from "firebase/auth";
 
 // 공통 옵션
 const TOAST_OPTIONS = 
@@ -13,6 +16,8 @@ const TOAST_OPTIONS =
 
 export default function authService()
 {
+    // 아바터 업로드 후 유저 정보 업데이트를 위한 setUser
+    const { setUser } = useContext(AuthContext);
     const getErrorMsg = (err) => 
     {
         return firebaseErrorMessages[err?.code]
@@ -67,9 +72,39 @@ export default function authService()
         }
     }
 
+    // 2026.04.06
+    // zod 기능 추가
+    const signUpWithEmail = async (email, password, avatarFile = null) =>
+    {
+        try 
+        {
+            const user = await signUp(email, password);
+            // firebase Storage 기능 관련 추가
+            // 아바타 파일이 있는 경우
+            if(avatarFile)
+            {
+                // firebase 쪽으로 보내주다
+                const photoURL = await uploadAvater(user.uid, avatarFile)
+                await updateProfile(user, {photoURL})
+                user.photoURL = photoURL;
+                // user 재설정
+                setUser({...user})
+            }
+            showLoginSuccessToast(user)
+            return user;    
+        } 
+        catch (error) 
+        {
+            showLoginErrorToast(error)
+            throw error;
+        }
+    }
+
+
     return {
         loginWithEmail,
-        loginWithGoogle
+        loginWithGoogle,
+        signUpWithEmail
     }
 
 }
